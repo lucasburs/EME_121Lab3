@@ -1,0 +1,76 @@
+%% Equations File "eqns_121lab3.m"
+
+function [ds,ext] = Lab3_EME121_eqs(t, s, p)
+ 
+% Input system parameters
+ 
+% t = time
+% s = states vector
+% ds = derivative of states
+% p = vector of parameters
+
+% Parameter unpack
+m_fw = p(1);
+vol = p(2);
+D_p = p(3);
+A_p = p(4);
+stroke = p(5);
+R = p(6);
+L = p(7);
+J_fw = p(8);
+m_p = p(9);
+w_n = p(10);
+k = p(11);
+b = p(12);
+
+% State Unpack
+x = s(1);
+theta = s(2);
+omega = s(3);
+v = s(4);
+
+omega_ideal = 2 * pi * (5000/60);
+gain = 0.01;
+
+% if omega <= 2*pi*(5000/60)
+%     tau = tau_0;
+% else
+%     tau = k * ( omega_ideal - omega);
+% end
+if t < 1
+    tau = gain * ( omega_ideal - omega);
+else
+    tau = 0;
+end
+
+%State Space Equations
+dx = v;
+dtheta = omega;
+
+int_var = (L^2 - R^2*(cos(theta))^2)^.5;
+f_theta = R*sin(theta) + int_var;
+d_f_theta = R*cos(theta) + (R^2*sin(theta)*cos(theta))/int_var;
+
+F_d = b*(dx - d_f_theta * dtheta);
+x_prime = f_theta;
+dx_prime = d_f_theta * dtheta;
+
+dv = -( F_d + k*(x - f_theta))/m_p;
+domega = (tau + (F_d*d_f_theta)+(k*(x-f_theta)*d_f_theta))/J_fw;
+
+
+% Output as vector
+ds =[dx dtheta domega dv]';
+
+
+% Preparing Extra Outputs
+F_spring = k* (x - f_theta);
+spring_deflection = F_spring/k;
+
+
+
+ext = [spring_deflection,F_d];
+
+
+
+end
