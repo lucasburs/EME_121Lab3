@@ -1,0 +1,126 @@
+%%    *Lab #2 : SIMULATION OF PINNED DISK WITH A SLOT AND MASS PARTICLE*
+%
+%                           Abhyuday Kaushik, Lucas Burstein, Raven Laddish
+%                                                             Apr. 26. 2019
+%
+%%
+%
+%
+%
+%
+%
+%
+%
+% 
+%
+%
+% 
+
+%% Master File "master_121lab3.m"
+
+% Cleanup
+clear all
+close all
+clc
+ 
+
+tau_0_boolean = 0;
+m_fw = 1/1.1 ; %kg (Mass of flywheel)
+vol = 0.0005; %m^3 {Volume of cylinder}
+
+D_p = 0.0762; %m (Diameter of Piston)
+A_p = (pi/4)*((D_p)^2); %m^2 {Area of Piston}
+
+stroke = vol/A_p;
+R = stroke/2;
+L = R/0.75;
+
+J_fw = m_fw*(R^2)/2;
+m_p = 0.25*J_fw*(1/(R^2));
+
+f_n = 3000;
+w_n = 2*pi*f_n;
+damp = 0.2;
+k=m_p*(w_n)^2;
+b = 2*damp*w_n*m_p;
+
+
+theta_0 = 0;
+v_0 = 0;
+omega_0 = 0;
+x_0 = (L^2 -R^2) ^.5
+%% Input
+
+p = [m_fw,vol,D_p,A_p,stroke,R,L,J_fw,m_p,w_n,k,b]; % Packing Parameters
+s_0 = [x_0,theta_0,v_0,omega_0]; % Packing Initial Conditions
+
+%% Time Vector
+ts = linspace(0,5,1000);
+
+%% Creating Function Handle for input to ode45
+f_anon = @(t,s) Lab3_EME121_eqs(t, s, p); 
+% Only changing t and x and not r and p
+%% Solve
+[ts, xs] = ode45(f_anon, ts, s_0); 
+% solves ODEs from t0 to tf with an initial state of x0
+% xs is a matrix with initial conditions in the first row and then the
+% values until t = final time
+
+% Each Column is the solutions for a given variable at the different times
+x = xs(:, 1);
+theta = xs(:, 2); 
+omega = xs(:, 3);
+v = xs(:, 4);
+
+ds = zeros(length(ts),4);
+ext = zeros(length(ts),4);
+
+
+%This loop extracts information from the equation file such as spring
+%deflection
+for i = 1:length(ts)
+  [ds(i,:),ext(i,:)] = eqns_121lab3_seperate(ts(i), xs(i,:), p);
+  
+end
+spring_def_mm = ext(:,1).* 1000;
+piston_acc = ext(:,2);
+piston_acc_gs = piston_acc/9.81; % piston acceleration in g's
+piston_force = abs(ext(:,3)); % force on piston
+
+
+% Converting theta and omega from radians to degrees for plotting
+theta_deg = theta.*180./pi;
+omega_deg = omega.*180./pi;
+
+rpm = 60 *omega/(2* pi);
+
+
+%% Plots
+figure (1) 
+plot(ts,rpm)
+grid on
+title('Disk Angular Velocity Vs. Time')
+title('Disk Angular Velocity Over 1 hour (fn = 3000 Hz)')
+xlabel('Time (s)')
+ylabel('Angular Velocity (rpm)')
+
+figure(2) 
+plot(ts, spring_def_mm)
+grid on
+title('Spring Deflection Vs. Time (fn = 3000 Hz)')
+xlabel('Time (s)')
+ylabel('Spring Deflection (mm)')
+
+figure(3)
+plot(ts, piston_acc)
+grid on
+title('Acceleration of Piston in g''s Vs. Time')
+xlabel('Time (s)')
+ylabel('Piston Acceleration (g''s)')
+
+figure(4)
+plot(ts, piston_force)
+grid on
+title('Force on Piston Vs. Time')
+xlabel('Time (s)')
+ylabel('Force (N*m)')
